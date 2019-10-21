@@ -57,7 +57,7 @@ def get_errors(y_test, y_hat, anom, smoothed=True):
 
 def process_errors(y_test, y_hat, e_s, anom, logger):
     '''Using windows of historical errors (h = batch size * window size), calculate the anomaly 
-    threshold (epsilon) and group any anomalous error values into continuos sequences. Calculate 
+    threshold (epsilon) and group any anomalous error values into continuous sequences. Calculate
     score for each sequence using the max distance from epsilon.
 
     Args:
@@ -73,9 +73,9 @@ def process_errors(y_test, y_hat, e_s, anom, logger):
     '''
    
     i_anom = [] # anomaly indices
-    window_size = config.window_size
+    window_size = config.window_size # 30
 
-    num_windows = int((y_test.shape[0] - (config.batch_size*window_size)) / config.batch_size)
+    num_windows = int((y_test.shape[0] - (config.batch_size*window_size)) / config.batch_size) # windows of batches
 
     # decrease the historical error window size (h) if number of test values is limited
     while num_windows < 0:
@@ -146,9 +146,11 @@ def find_epsilon(e_s, error_buffer, sd_lim=12.0):
         pruned_e_s, pruned_i, i_anom  = [], [], []
 
         for i,e in enumerate(e_s):
+            # pruned_e_s (less than threshold)
             if e < epsilon:
                 pruned_e_s.append(e)
                 pruned_i.append(i)
+            # anomalies (more than threshold)
             if e > epsilon:
                 for j in range(0, error_buffer):
                     if not i + j in i_anom and not i + j >= len(e_s):
@@ -160,6 +162,7 @@ def find_epsilon(e_s, error_buffer, sd_lim=12.0):
             # preliminarily group anomalous indices into continuous sequences (# sequences needed for scoring)
             i_anom = sorted(list(set(i_anom)))
             groups = [list(group) for group in mit.consecutive_groups(i_anom)]
+            # remove list of one element, and return list of tuples of the min_index, and max_index
             E_seq = [(g[0], g[-1]) for g in groups if not g[0] == g[-1]]
                 
             perc_removed = 1.0 - (float(len(pruned_e_s)) / float(len(e_s)))
@@ -167,7 +170,7 @@ def find_epsilon(e_s, error_buffer, sd_lim=12.0):
             sd_perc_decrease = (sd - np.std(pruned_e_s)) / sd
             s = (mean_perc_decrease + sd_perc_decrease) / (len(E_seq)**2 + len(i_anom))
 
-            # sanity checks
+            # sanity checks (rational cases)
             if s >= max_s and len(E_seq) <= 5 and len(i_anom) < (len(e_s)*0.5):
                 sd_threshold = z
                 max_s = s
@@ -302,7 +305,7 @@ def prune_anoms(E_seq, e_s, non_anom_max, i_anom):
 def get_anomalies(e_s, y_test, z, window, i_anom_full, len_y_test):
     '''Find anomalous sequences of smoothed error values that are above error threshold (epsilon). Both
     smoothed errors and the inverse of the smoothed errors are evaluated - large dips in errors often
-    also indicate anomlies.
+    also indicate anomalies.
 
     Args:
         e_s (list): smoothed errors between y_test and y_hat values
