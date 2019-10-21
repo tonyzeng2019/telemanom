@@ -1,3 +1,24 @@
+# Edit Env
+In Pycharm:
+- go to project interpreter - change to conda environment
+
+In Anaconda Prompt:
+- `conda env list`
+- `activate telemanom`
+- `PATH`
+- Copy the path
+- `virtualenv -p C:\Users\USER\AppData\Local\Programs\Python\Python36\python.exe venv`
+- `venv/Scripts/activate`
+- `pip install -r requirements.txt`
+
+- ERROR: tensorboard 1.6.0 has requirement bleach==1.5.0, but you'll have bleach 2.1.3 which is incompatible.
+- ERROR: tensorboard 1.6.0 has requirement html5lib==0.9999999, but you'll have html5lib 1.0.1 which is incompatible.
+
+In Pycharm:
+- Python Console, Add Environment Variables with name `PATH` and value `$copied path`
+- Steps: Click Run -> Edit Configuration -> Python -> add environment variable with `PATH` and `$copied path` 
+
+
 # Telemanom
 
 ### Branch info:

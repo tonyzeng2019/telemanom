@@ -25,7 +25,7 @@ class Config:
         dictionary = None
         
         with open(path_to_config, "r") as f:
-            dictionary = yaml.load(f.read())
+            dictionary = yaml.load(f.read(),Loader=yaml.FullLoader)
                 
         try:
             for k,v in dictionary.items():
@@ -41,7 +41,7 @@ class Config:
         channel_group_lookup = {}   
 
         with open(path_to_groupings, "r") as f:
-            groupings = json.loads(f.read())
+            groupings = json.loads(f.read(),Loader=yaml.FullLoader)
 
             for subsystem in groupings.keys():
                 for subgroup in groupings[subsystem].keys():

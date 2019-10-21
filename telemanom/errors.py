@@ -19,6 +19,8 @@ config = Config("config.yaml")
 def get_errors(y_test, y_hat, anom, smoothed=True):
     """Calculate the difference between predicted telemetry values and actual values, then smooth residuals using
     ewma to encourage identification of sustained errors/anomalies.
+    
+    # The Exponentially Weighted Moving Average (EWMA) is a statistic for monitoring the process that averages the data in a way that gives less and less weight to data as they are further removed in time.
 
     Args:
         y_test (np array): array of test targets corresponding to true values to be predicted at end of each sequence

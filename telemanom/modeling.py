@@ -34,11 +34,40 @@ def get_model(anom, X_train, y_train, logger, train=False):
         if not train:
             logger.info("Training new model from scratch.")
 
+        
+        '''
+        # Callbacks
+        History(): Callback that records events into a History object. History attribute is a record of training loss values and metrics values at successive epochs, as well as validation loss values and validation metrics values (if applicable).
+        ==> Used for plotting
+        
+        EarlyStopping(): Stop training when a monitored quantity has stopped improving.
+        
+        monitor: quantity to be monitored.
+        
+        patience: number of epochs that produced the monitored quantity with no improvement after which training will be stopped.Validation quantities may not be produced for every epoch, if the validation frequency (model.fit(validation_freq=5)) is greater than one.
+        
+        min_delta: minimum change in the monitored quantity to qualify as an improvement, i.e. an absolute change of less than min_delta, will count as no improvement.
+        
+        verbose: int. 0: quiet, 1: update messages. (show the msg per epoch)
+        '''
         cbs = [History(), EarlyStopping(monitor='val_loss', patience=config.patience, 
             min_delta=config.min_delta, verbose=0)]
         
+        # 1. Define Network
+        # Keras Sequential models
         model = Sequential()
 
+        '''
+        LSTM layer with 80 nodes
+        
+        Pass an input_shape argument (None,25) to the first layer. This is a shape tuple (a tuple of integers or None entries, where None indicates that any positive integer may be expected).
+        # expected input data shape: (batch_size, timesteps, data_dim)
+        # input_shape=(timesteps, data_dim) 
+        # Here, timesteps = None => Any positive integer
+        # 25 => data_dimension
+        # returns a sequence of vectors of dimension 80
+        
+        '''
         model.add(LSTM(
             config.layers[0],
             input_shape=(None, X_train.shape[2]),
@@ -50,14 +79,25 @@ def get_model(anom, X_train, y_train, logger, train=False):
             return_sequences=False))
         model.add(Dropout(config.dropout))
 
+        # Ouputting layer
         model.add(Dense(
             config.n_predictions))
         model.add(Activation("linear"))
 
+        # Compile Network
+        '''
+        # Compilation is an efficiency step. It transforms the simple sequence of layers that we defined into a highly efficient series of matrix transforms in a format intended to be executed on your GPU or CPU, depending on how Keras is configured.
+        # Here,
+        # loss_metric: 'mse'
+        # optimizer: 'adam'
+        '''
         model.compile(loss=config.loss_metric, optimizer=config.optimizer) 
 
+        # Fit Network
+        # A stateful recurrent model is one for which the internal states (memories) obtained after processing a batch of samples are reused as initial states for the samples of the next batch
         model.fit(X_train, y_train, batch_size=config.lstm_batch_size, epochs=config.epochs, 
             validation_split=config.validation_split, callbacks=cbs, verbose=True)
+        
         model.save(os.path.join("data", anom['run_id'], "models", anom["chan_id"] + ".h5"))
 
         return model
@@ -98,6 +138,7 @@ def predict_in_batches(y_test, X_test, model, anom):
 
         # map predictions n steps ahead to their corresponding timestep
         # TODO: vectorize
+        
         final_y_hat = []
         for t in range(len(y_hat_period)+config.n_predictions):
             y_hat_t = []
@@ -109,7 +150,6 @@ def predict_in_batches(y_test, X_test, model, anom):
                     final_y_hat.append(0)
                 else:
                     final_y_hat.append(y_hat_t[0]) # first prediction
-
 
         y_hat_period = np.array(final_y_hat).reshape(len(final_y_hat),1)
         y_hat = np.append(y_hat, y_hat_period)
