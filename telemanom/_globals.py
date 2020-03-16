@@ -6,6 +6,7 @@ import yaml
 import json
 import sys
 import os
+sys.path.append('../venv/lib/python3.5/site-packages')
 from elasticsearch import Elasticsearch
 
 sys.path.append('../telemanom') 
@@ -25,7 +26,7 @@ class Config:
         dictionary = None
         
         with open(path_to_config, "r") as f:
-            dictionary = yaml.load(f.read(),Loader=yaml.FullLoader)
+            dictionary = yaml.load(f.read())
                 
         try:
             for k,v in dictionary.items():
@@ -41,7 +42,7 @@ class Config:
         channel_group_lookup = {}   
 
         with open(path_to_groupings, "r") as f:
-            groupings = json.loads(f.read(),Loader=yaml.FullLoader)
+            groupings = json.loads(f.read())
 
             for subsystem in groupings.keys():
                 for subgroup in groupings[subsystem].keys():
