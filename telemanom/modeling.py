@@ -5,13 +5,15 @@ from keras.layers.core import Dense, Activation, Dropout
 import numpy as np
 import os
 from telemanom._globals import Config
+from keras.layers import RepeatVector
+from keras.layers import TimeDistributed
 
 #config
 config = Config("config.yaml")
 os.environ['TF_CPP_MIN_LOG_LEVEL']='2' # suppress tensorflow CPU speedup warnings
 
 
-def get_model(anom, X_train, y_train, logger, train=False):
+def get_model(anom, X_train, y_train, logger, model_type = 'LSTM', train=False):
     '''Train LSTM model according to specifications in config.yaml or load pre-trained model.
 
     Args:
@@ -57,32 +59,50 @@ def get_model(anom, X_train, y_train, logger, train=False):
         # Keras Sequential models
         model = Sequential()
 
-        '''
-        LSTM layer with 80 nodes
-        
-        Pass an input_shape argument (None,25) to the first layer. This is a shape tuple (a tuple of integers or None entries, where None indicates that any positive integer may be expected).
-        # expected input data shape: (batch_size, timesteps, data_dim)
-        # input_shape=(timesteps, data_dim) 
-        # Here, timesteps = None => Any positive integer
-        # 25 => data_dimension
-        # returns a sequence of vectors of dimension 80
-        
-        '''
-        model.add(LSTM(
-            config.layers[0],
-            input_shape=(None, X_train.shape[2]),
-            return_sequences=True))
-        model.add(Dropout(config.dropout))
+        if model_type == 'LSTM':
 
-        model.add(LSTM(
-            config.layers[1],
-            return_sequences=False))
-        model.add(Dropout(config.dropout))
+            '''
+            LSTM layer with 80 nodes
 
-        # Ouputting layer
-        model.add(Dense(
-            config.n_predictions))
-        model.add(Activation("linear"))
+            Pass an input_shape argument (None,25) to the first layer. This is a shape tuple (a tuple of integers or None entries, where None indicates that any positive integer may be expected).
+            # expected input data shape: (batch_size, timesteps, data_dim)
+            # input_shape=(timesteps, data_dim) 
+            # Here, timesteps = None => Any positive integer
+            # 25 => data_dimension
+            # returns a sequence of vectors of dimension 80
+
+            '''
+            model.add(LSTM(
+                config.layers[0],
+                input_shape=(None, X_train.shape[2]),
+                return_sequences=True))
+            model.add(Dropout(config.dropout))
+
+            model.add(LSTM(
+                config.layers[1],
+                return_sequences=False))
+            model.add(Dropout(config.dropout))
+
+            # Ouputting layer
+            model.add(Dense(
+                config.n_predictions))
+            model.add(Activation("linear"))
+
+        elif model_type == 'LSTM_AE':
+            model.add(LSTM(128, activation='relu', input_shape=(None, X_train.shape[2]), return_sequences=True))
+            model.add(LSTM(64, activation='relu', return_sequences=False))
+            model.add(RepeatVector(X_train.shape[2]))
+            model.add(LSTM(64, activation='relu', return_sequences=True))
+            model.add(LSTM(128, activation='relu', return_sequences=True))
+            model.add(TimeDistributed(Dense(X_train.shape[3])))
+
+            # Ouputting layer
+            model.add(Dense(
+                config.n_predictions))
+            model.add(Activation("linear"))
+
+            model.compile(optimizer='adam', loss='mse')
+            model.summary()
 
         # Compile Network
         '''
@@ -91,15 +111,15 @@ def get_model(anom, X_train, y_train, logger, train=False):
         # loss_metric: 'mse'
         # optimizer: 'adam'
         '''
-        model.compile(loss=config.loss_metric, optimizer=config.optimizer) 
+        model.compile(loss=config.loss_metric, optimizer=config.optimizer)
 
         # Fit Network
         # A stateful recurrent model is one for which the internal states (memories) obtained after processing a batch of samples are reused as initial states for the samples of the next batch
-        model.fit(X_train, y_train, batch_size=config.lstm_batch_size, epochs=config.epochs, 
-            validation_split=config.validation_split, callbacks=cbs, verbose=True)
-        
-        model.save(os.path.join("data", anom['run_id'], "models", anom["chan_id"] + ".h5"))
+        model.fit(X_train, y_train, batch_size=config.lstm_batch_size, epochs=config.epochs,
+                  validation_split=config.validation_split, callbacks=cbs, verbose=True)
 
+        model.save(os.path.join("data", anom['run_id'], "models", anom["chan_id"] + ".h5"))
+            
         return model
 
 
